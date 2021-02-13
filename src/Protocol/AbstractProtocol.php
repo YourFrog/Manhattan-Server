@@ -2,6 +2,7 @@
 
 namespace Yukoriko\Protocol;
 
+use React\EventLoop\LoopInterface;
 use Yukoriko\BinaryReader;
 use Yukoriko\Network\Client;
 
@@ -15,7 +16,19 @@ abstract class AbstractProtocol
     const PROTOCOL_GAME = 0x0A;
     const PROTOCOL_LOGIN = 0x01;
 
-    static public function make(string $msg): AbstractProtocol
+    protected $loop;
+
+    /**
+     *  Konstruktor
+     *
+     * @param LoopInterface $loop
+     */
+    public function __construct(LoopInterface $loop)
+    {
+        $this->loop = $loop;
+    }
+
+    static public function make(\React\EventLoop\LoopInterface $loop, string $msg): AbstractProtocol
     {
         $buffer = new BinaryReader($msg);
         $buffer->skip(2); # we are skipped message length
@@ -23,8 +36,8 @@ abstract class AbstractProtocol
         $protocol = $buffer->readUnsignedByte(); #
 
         switch($protocol) {
-            case self::PROTOCOL_GAME: return new GameProtocol();
-            case self::PROTOCOL_LOGIN: return new LoginProtocol();
+            case self::PROTOCOL_GAME: return new GameProtocol($loop);
+            case self::PROTOCOL_LOGIN: return new LoginProtocol($loop);
             default:
                 throw new \Exception('Protocol ' . $protocol . '[0x' . dechex($protocol) . '] is unknown');
         }

@@ -114,11 +114,11 @@ class BinaryReader
         $bytes = unpack('C*', $message);
 
         $bytes = array_map(function($value) {
-            $hexValue = dechex($value);
+            $hexValue = strtoupper(dechex($value));
             return '0x' . str_pad($hexValue, 2, '0', STR_PAD_LEFT);
         }, $bytes);
 
-        echo $title . ' [Length: ' . count($bytes) . ']: ' . PHP_EOL;
+        echo $title . ' [Length: ' . count($bytes) . '], Command: [' . $bytes[3] . ']: ' . PHP_EOL;
         echo implode(' ', $bytes) . PHP_EOL;
 
         fseek($this->handle, $oldPosition, SEEK_SET);

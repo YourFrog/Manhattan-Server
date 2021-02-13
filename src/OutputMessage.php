@@ -109,17 +109,17 @@ class OutputMessage
             $outputMessageLength = count($this->bytes) - 2;
         }
 
-        $this->dumpBytes('Unencrypted message');
+//        $this->dumpBytes('Unencrypted message');
 
         $slice = array_slice($this->bytes, 2);
         $outputMessage = implode('', array_map(function($value) {
             return chr($value);
         }, $slice))
         ;
-        var_dump('Output message after padding: ', $outputMessage);
+//        var_dump('Output message after padding: ', $outputMessage);
         $outputMessageEncrypt = XTEA::encrypt($outputMessage, $this->xtea);
 
-        var_dump('Output message length aftter crypt: ' . strlen($outputMessageEncrypt));
+//        var_dump('Output message length aftter crypt: ' . strlen($outputMessageEncrypt));
         # Reset bytes
         $this->bytes = array_fill(0, 2, 0);
 
@@ -127,7 +127,7 @@ class OutputMessage
             $this->bytes[$i + 2] = ord($outputMessageEncrypt[$i]);
         }
 
-        $this->dumpBytes('Encrypted output message');
+//        $this->dumpBytes('Encrypted output message');
     }
 
     public function addChecksum()
@@ -190,7 +190,7 @@ class OutputMessage
     }
 
     public function __toString() {
-        $this->dumpBytes('Befor encrypted');
+//        $this->dumpBytes('Befor encrypted');
 
         $this->addSize();
         if( $this->xtea !== null ) {

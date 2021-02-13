@@ -13,8 +13,22 @@ use Yukoriko\OutputMessage;
  */
 class GameProtocol extends AbstractProtocol
 {
+    const COMMAND_PING = 0x1E;
+
     const COMMAND_FIGHT_MODE = 0xA0;
     const COMMAND_SET_OUTFIT = 0xD3;
+    const COMMAND_REQUEST_OUTFIT_WINDOW =  0xD2;
+
+    # Chat
+    const COMMAND_PLAYER_SAY = 0x96;
+    const COMMAND_REQUEST_FOR_CHANNELS_IN_DIALOG = 0x97;
+    const COMMAND_CREATE_NEW_PRIVATE_CAHNNEL = 0x9a;
+
+    const REQUEST_PING = 0x1E;
+    const REQUEST_CHANNELS_IN_DIALOG = 0xAB;
+    const REQUEST_CREATED_NEW_CHANNEL = 0xAD;
+    const REQUEST_CREATURE_SET_OUTFIT = 0x8E;
+
 
     const SLOT_WHEREEVER = 0x00;
     const SLOT_FIRST = 0x01;
@@ -30,6 +44,28 @@ class GameProtocol extends AbstractProtocol
     const SLOT_AMMO = 0x0A;
     const SLOT_DEPOT = 0x0B;
     const SLOT_LAST = self::SLOT_DEPOT;
+
+    private function addMap(OutputMessage $outputMessage) {
+        $skip = -1;
+        for($z = 7; $z != -1; $z += -1) {
+            for ($x = 0; $x < 18; $x++) {
+                for ($y = 0; $y < 14; $y++) {
+
+
+                    if( $skip >= 0 ) {
+                        $outputMessage->AddByte(0x00);
+                        $outputMessage->AddByte(0xFF);
+                    }
+
+                    $skip = 0;
+                    $outputMessage->addShort(351);
+                }
+            }
+        }
+
+        $outputMessage->addByte(0x00);
+        $outputMessage->addByte(0xFF);
+    }
 
     /**
      * @inheritDoc
@@ -105,25 +141,7 @@ class GameProtocol extends AbstractProtocol
         $outputMessage->addShort(1025);
         $outputMessage->addByte(6);
 
-        $skip = -1;
-        for($z = 7; $z != -1; $z += -1) {
-            for ($x = 0; $x < 18; $x++) {
-                for ($y = 0; $y < 14; $y++) {
-
-
-                    if( $skip >= 0 ) {
-                        $outputMessage->AddByte(0x00);
-                        $outputMessage->AddByte(0xFF);
-                    }
-
-                    $skip = 0;
-                    $outputMessage->addShort(351);
-                }
-            }
-        }
-
-        $outputMessage->addByte(0x00);
-        $outputMessage->addByte(0xFF);
+        $this->addMap($outputMessage);
 
 
         $client->send($outputMessage);
@@ -188,10 +206,11 @@ class GameProtocol extends AbstractProtocol
 
         $client->send($outputMessage);
         $outputMessage = $client->makeOutputMessage();
+
         #skills
         $outputMessage->addByte(0xA1);
-        $outputMessage->addByte(0x0A); // fist
-        $outputMessage->addByte(0x00);
+        $outputMessage->addByte(0x0B); // fist
+        $outputMessage->addByte(0x02);
         $outputMessage->addByte(0x0A); // club
         $outputMessage->addByte(0x00);
         $outputMessage->addByte(0x0A); // sword
@@ -262,6 +281,11 @@ class GameProtocol extends AbstractProtocol
 
     private function showInputMessage(int $command, BinaryReader $buffer)
     {
+        if( $command == self::COMMAND_PING ) {
+            # Not showing pings
+            return;
+        }
+
         $commands = $this->getConstants();
         foreach($commands as $key => $value) {
             $keyFromConstant = constant('self::' . $key);
@@ -304,9 +328,21 @@ class GameProtocol extends AbstractProtocol
                     var_dump('Command of logout');
                 break;
 
-            case 0x1E:
-                    // Ignore ping
-                    var_dump('Command of ping');
+            case self::COMMAND_PING:
+                    $this->loop->addTimer(5, function() use ($client) {
+                        $output = $client->makeOutputMessage();
+                        $output->addByte(self::REQUEST_PING);
+
+                        $client->send($output);
+
+                        # Test cancel message
+                        $output = $client->makeOutputMessage();
+                        $output->addByte(0xB4);
+                        $output->addByte(MessageType::MSG_INFO_DESCR);
+                        $output->addString("Cancel something");
+
+                        $client->send($output);
+                    });
                 break;
             case 0x64:
                 // Ignore player auto click
@@ -318,7 +354,26 @@ class GameProtocol extends AbstractProtocol
                 break;
             case 0x66:
                 // Ignore player move right
-                var_dump('Ignore player move right');
+                    var_dump('Ignore player move right');
+//                  Not working :(
+//                    $output = $client->makeOutputMessage();
+//                    $output->addByte(0x6D);
+//                    # Old position
+//                    $output->addShort(1024); # Start map position
+//                    $output->addShort(1024);
+//                    $output->addByte(7);
+//                    # Stack
+//                    $output->AddByte(0x02);
+//                    # New position
+//                    $output->addShort(1025); # Start map position
+//                    $output->addShort(1024);
+//                    $output->addByte(7);
+//
+//                    $output->AddByte(0x66);
+//                    $this->addMap($output);
+//
+//                    $client->send($output);
+
                 break;
             case 0x67:
                 // Ignore player move bottom
@@ -360,9 +415,36 @@ class GameProtocol extends AbstractProtocol
                     var_dump('Command of player message');
                 break;
 
-            case 0xD3:
+            case self::COMMAND_REQUEST_OUTFIT_WINDOW:
+                    $outputMessage = $client->makeOutputMessage();
+                    # Outfits ?
+                    $outputMessage->addByte(0xC8);
+                    $outputMessage->addShort(0x4B);   # Gamemaster (ID: 75)
+                    $outputMessage->addByte(0x00);
+                    $outputMessage->addByte(0x00);
+                    $outputMessage->addByte(0x00);
+                    $outputMessage->addByte(0x00);
+                    $outputMessage->addByte(0x00);
+
+                    $outfits = [
+                        ['id' => 0x4B, 'name' => 'Game master'],
+                        ['id' => 0x81, 'name' => 'Hunter'],
+                        ['id' => 0x80, 'name' => 'Mage']
+                    ];
+
+                    $cc = 0x120;
+                    $outputMessage->addByte($cc);         // Outfit count
+                    for($i = 0; $i < $cc; $i++) {
+                        $outputMessage->addShort(0x98 - $i);
+                        $outputMessage->addString("Gamemaster " . dechex(0x98 - $i));
+                        $outputMessage->addByte(0x00);
+                    }
+
+                    $client->send($outputMessage);
+                break;
+
+            case self::COMMAND_SET_OUTFIT:
                     // Ignore set outfit
-                    var_dump('Command of Set outfit!!');
                     $output = $client->makeOutputMessage();
                     $output->AddByte(0x8E);
                     $output->addInteger(0x01); // Player ID
@@ -373,10 +455,72 @@ class GameProtocol extends AbstractProtocol
                     $output->addByte(0x00);
                     $output->addByte(0x00);
                     $client->send($output);
+
+
+                    $output = $client->makeOutputMessage();
+                    $output->AddByte(0x6A);
+                    $output->addShort(1024); # Start map position
+                    $output->addShort(1024);
+                    $output->addByte(0x6);
+
+                    $output->addShort(0x61);
+                    $output->addInteger(0x00);
+                    $output->addInteger(0x01);
+                    $output->addString("Yukoriko");
+                $output->addByte(0x32); // HP Bar in percent
+                $output->addByte(0x01); // Look direction
+                $output->addShort(0x4B);   # Gamemaster (ID: 75)
+                $output->addByte(0x01);
+                $output->addByte(0x01);
+                $output->addByte(0x01);
+                $output->addByte(0x01);
+                $output->addByte(0x01);
+
+                $output->addByte(0xFF); // Light
+                $output->addByte(0xFF);
+
+                $output->addShort(0x200);
+
+                $output->addByte(0x00); // Skull
+                $output->addByte(0x00); // Party shield
+            // Outfit??
+
+                $client->send($output);
+
                 break;
             case 0xBE:
                     // Ignore cancel move
                     var_dump('Command of Cancel move!!');
+                break;
+
+            case self::COMMAND_REQUEST_FOR_CHANNELS_IN_DIALOG:
+                    $channels = [
+                        ['id' => 1, 'name' => 'Radio ZET'],
+                        ['id' => 2, 'name' => 'Polish unnamed'],
+                    ];
+
+                    $cc = count($channels);
+
+                    $output = $client->makeOutputMessage();
+                    $output->AddByte(self::REQUEST_CHANNELS_IN_DIALOG);
+                    $output->addByte($cc);
+
+                    for($i = 0; $i < $cc; $i++) {
+                        $channel = $channels[$i];
+
+                        $output->addShort($channel['id']);
+                        $output->addString($channel['name']);
+                    }
+                    $client->send($output);
+                break;
+
+            case self::COMMAND_CREATE_NEW_PRIVATE_CAHNNEL:
+                    $channelName = $buffer->readString();
+
+                    $output = $client->makeOutputMessage();
+                    $output->AddByte(self::REQUEST_CREATED_NEW_CHANNEL);
+                    $output->addString($channelName . ' channel');
+                    $client->send($output);
                 break;
 
             default:
@@ -405,4 +549,21 @@ class SpeakType
     const SPEAK_UNKNOWN_2 = 0x0F;
     const SPEAK_MONSTER_SAY	= 0x10;
     const SPEAK_MONSTER_YELL = 0x11;
+};
+
+class MessageType
+{
+    const MSG_CLASS_FIRST			= 0x01;
+    const MSG_STATUS_CONSOLE_YELLOW	= self::MSG_CLASS_FIRST; /*Yellow message in the console*/
+    const MSG_STATUS_CONSOLE_LBLUE	= 0x04; /*Lightblue message in the console*/
+    const MSG_STATUS_CONSOLE_ORANGE	= 0x11; /*Orange message in the console*/
+    const MSG_STATUS_WARNING		= 0x12; /*Red message in game window and in the console*/
+    const MSG_EVENT_ADVANCE		= 0x13; /*White message in game window and in the console*/
+    const MSG_EVENT_DEFAULT		= 0x14; /*White message at the bottom of the game window and in the console*/
+    const MSG_STATUS_DEFAULT		= 0x15; /*White message at the bottom of the game window and in the console*/
+    const MSG_INFO_DESCR			= 0x16; /*Green message in game window and in the console*/
+    const MSG_STATUS_SMALL		= 0x17; /*White message at the bottom of the game window"*/
+    const MSG_STATUS_CONSOLE_BLUE		= 0x18; /*Blue message in the console*/
+    const MSG_STATUS_CONSOLE_RED		= 0x19; /*Red message in the console*/
+    const MSG_CLASS_LAST			= self::MSG_STATUS_CONSOLE_RED;
 };

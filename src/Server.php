@@ -17,12 +17,24 @@ class Server implements MessageComponentInterface {
 
     private $privateKey;
 
+    /**
+     * @var \React\EventLoop\LoopInterface
+     */
+    private $loop;
+
     public function __construct(string $privateKey)
     {
         $this->privateKey = $privateKey;
         $this->clients = [];
     }
 
+    /**
+     * @param \React\EventLoop\LoopInterface $loop
+     */
+    public function setLoop(\React\EventLoop\LoopInterface $loop): void
+    {
+        $this->loop = $loop;
+    }
 
     public function onOpen(ConnectionInterface $conn) {
         $this->clients[$conn->resourceId] = new Client($this, $conn, $this->privateKey);
@@ -33,7 +45,7 @@ class Server implements MessageComponentInterface {
 
 
         if( $client->isFirstMessage() ) {
-            $protocol = AbstractProtocol::make($msg);
+            $protocol = AbstractProtocol::make($this->loop, $msg);
             $protocol->parseFirstMessage($client, $msg);
 
             $client->setProtocol($protocol);

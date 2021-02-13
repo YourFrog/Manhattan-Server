@@ -118,7 +118,6 @@ final class WritableResourceStream extends EventEmitter implements WritableStrea
             $error = $errstr;
         });
 
-        var_dump(__FILE__ . '::' . __LINE__, $this->data);
         if ($this->writeChunkSize === -1) {
             $sent = \fwrite($this->stream, $this->data);
         } else {
