@@ -567,3 +567,14 @@ class MessageType
     const MSG_STATUS_CONSOLE_RED		= 0x19; /*Red message in the console*/
     const MSG_CLASS_LAST			= self::MSG_STATUS_CONSOLE_RED;
 };
+
+class Directions {
+    const NORTH = 0;
+    const EAST = 1;
+    const SOUTH = 2;
+    const WEST = 3;
+    const SOUTHWEST = 4;
+    const SOUTHEAST = 5;
+    const NORTHWEST = 6;
+    const NORTHEAST = 7;
+};
