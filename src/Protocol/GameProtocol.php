@@ -380,8 +380,32 @@ class GameProtocol extends AbstractProtocol
                 var_dump('Ignore player move bottom');
                 break;
             case 0x68:
-                // Ignore player move left
-                var_dump('Ignore player move left');
+                $output = $client->makeOutputMessage();
+
+                $output->addByte(0x6D);
+                # Old position
+                $output->addShort(1024); # Start map position
+                $output->addShort(1024);
+                $output->addByte(7);
+                # Stack
+                $output->AddByte(0x05);
+                # New position
+                $output->addShort(1025); # Start map position
+                $output->addShort(1024);
+                $output->addByte(7);
+
+                $output->AddByte(0x68);
+
+                // Tiles
+                for($i = 0; $i < 14; $i++) {
+                    for($z = 7; $z != -1; $z--) {
+                        $output->addShort(351);
+                        $output->addByte(0);
+                        $output->addByte(0xFF);
+                    }
+                }
+
+                $client->send($output);
                 break;
             case 0x6F:
                 // Ignore player dance up
