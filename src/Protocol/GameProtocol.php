@@ -29,6 +29,16 @@ class GameProtocol extends AbstractProtocol
     const REQUEST_CREATED_NEW_CHANNEL = 0xAD;
     const REQUEST_CREATURE_SET_OUTFIT = 0x8E;
 
+    # Movement
+    const COMMAND_MOVE_NORTH = 0x65;
+    const COMMAND_MOVE_EAST = 0x66;
+    const COMMAND_MOVE_SOUTH = 0x67;
+    const COMMAND_MOVE_WEST = 0x68;
+
+    const COMMAND_MOVE_NORTH_WEST = 0x6D;
+    const COMMAND_MOVE_NORTH_EAST = 0x6A;
+    const COMMAND_MOVE_SOUTH_WEST = 0x6C;
+    const COMMAND_MOVE_SOUTH_EAST = 0x6B;
 
     const SLOT_WHEREEVER = 0x00;
     const SLOT_FIRST = 0x01;
@@ -348,62 +358,157 @@ class GameProtocol extends AbstractProtocol
                 // Ignore player auto click
                 var_dump('Ignore player auto click');
                 break;
-            case 0x65:
-                    // Ignore player move up
-                    var_dump('Ignore player move up');
-                break;
-            case 0x66:
-                // Ignore player move right
-                    var_dump('Ignore player move right');
-//                  Not working :(
-//                    $output = $client->makeOutputMessage();
-//                    $output->addByte(0x6D);
-//                    # Old position
-//                    $output->addShort(1024); # Start map position
-//                    $output->addShort(1024);
-//                    $output->addByte(7);
-//                    # Stack
-//                    $output->AddByte(0x02);
-//                    # New position
-//                    $output->addShort(1025); # Start map position
-//                    $output->addShort(1024);
-//                    $output->addByte(7);
-//
-//                    $output->AddByte(0x66);
-//                    $this->addMap($output);
-//
-//                    $client->send($output);
-
-                break;
-            case 0x67:
-                // Ignore player move bottom
-                var_dump('Ignore player move bottom');
-                break;
-            case 0x68:
+            case self::COMMAND_MOVE_NORTH:
                 $output = $client->makeOutputMessage();
 
-                $output->addByte(0x6D);
-                # Old position
-                $output->addShort(1024); # Start map position
-                $output->addShort(1024);
-                $output->addByte(7);
-                # Stack
-                $output->AddByte(0x05);
-                # New position
-                $output->addShort(1025); # Start map position
-                $output->addShort(1024);
-                $output->addByte(7);
+                $oldPosition = [
+                    'x' => 1024,
+                    'y' => 1025,
+                    'z' => 7
+                ];
 
-                $output->AddByte(0x68);
+                $newPosition = [
+                    'x' => 1024,
+                    'y' => 1024,
+                    'z' => 7
+                ];
 
-                // Tiles
-                for($i = 0; $i < 14; $i++) {
-                    for($z = 7; $z != -1; $z--) {
-                        $output->addShort(351);
-                        $output->addByte(0);
-                        $output->addByte(0xFF);
-                    }
-                }
+                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 109);
+
+                $client->send($output);
+                break;
+            case self::COMMAND_MOVE_EAST:
+                $output = $client->makeOutputMessage();
+
+                $oldPosition = [
+                    'x' => 1024,
+                    'y' => 1024,
+                    'z' => 7
+                ];
+
+                $newPosition = [
+                    'x' => 1023,
+                    'y' => 1024,
+                    'z' => 7
+                ];
+
+                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 109);
+
+                $client->send($output);
+                break;
+            case self::COMMAND_MOVE_SOUTH:
+                $output = $client->makeOutputMessage();
+
+                $oldPosition = [
+                    'x' => 1024,
+                    'y' => 1024,
+                    'z' => 7
+                ];
+
+                $newPosition = [
+                    'x' => 1024,
+                    'y' => 1025,
+                    'z' => 7
+                ];
+
+                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 109);
+
+                $client->send($output);
+                break;
+            case self::COMMAND_MOVE_WEST:
+                $output = $client->makeOutputMessage();
+
+                $oldPosition = [
+                    'x' => 1024,
+                    'y' => 1024,
+                    'z' => 7
+                ];
+
+                $newPosition = [
+                    'x' => 1025,
+                    'y' => 1024,
+                    'z' => 7
+                ];
+
+                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 108);
+
+                $client->send($output);
+                break;
+
+            case self::COMMAND_MOVE_SOUTH_EAST:
+                $output = $client->makeOutputMessage();
+
+                $oldPosition = [
+                    'x' => 1024,
+                    'y' => 1024,
+                    'z' => 7
+                ];
+
+                $newPosition = [
+                    'x' => 1023,
+                    'y' => 1025,
+                    'z' => 7
+                ];
+
+                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 351);
+
+                $client->send($output);
+                break;
+            case self::COMMAND_MOVE_SOUTH_WEST:
+                $output = $client->makeOutputMessage();
+
+                $oldPosition = [
+                    'x' => 1024,
+                    'y' => 1024,
+                    'z' => 7
+                ];
+
+                $newPosition = [
+                    'x' => 1025,
+                    'y' => 1025,
+                    'z' => 7
+                ];
+
+                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 110);
+
+                $client->send($output);
+                break;
+            case self::COMMAND_MOVE_NORTH_EAST:
+                $output = $client->makeOutputMessage();
+
+                $oldPosition = [
+                    'x' => 1024,
+                    'y' => 1024,
+                    'z' => 7
+                ];
+
+                $newPosition = [
+                    'x' => 1023,
+                    'y' => 1023,
+                    'z' => 7
+                ];
+
+                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 110);
+
+                $client->send($output);
+                break;
+
+            case self::COMMAND_MOVE_NORTH_WEST:
+                $output = $client->makeOutputMessage();
+
+                $oldPosition = [
+                    'x' => 1024,
+                    'y' => 1024,
+                    'z' => 7
+                ];
+
+                $newPosition = [
+                    'x' => 1025,
+                    'y' => 1023,
+                    'z' => 7
+                ];
+
+                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 110);
 
                 $client->send($output);
                 break;
@@ -551,6 +656,104 @@ class GameProtocol extends AbstractProtocol
                     echo 'Unknown protocol ' . $command . ' [0x' . str_pad(dechex($command), 2, '0', STR_PAD_LEFT) . ']' . PHP_EOL;
                 break;
         }
+    }
+
+    private function sendMove(OutputMessage $msg, array $oldPosition, array $newPosition, int $floorId = 351): OutputMessage
+    {
+        $msg->AddByte(0x6D);
+
+        [$oldX, $oldY, $oldZ] = $oldPosition;
+        [$newX, $newY, $newZ] = $newPosition;
+
+        # Old position
+        $msg->addShort($oldX); # Start map position
+        $msg->addShort($oldY);
+        $msg->addByte($oldZ);
+
+        # Stack
+        $msg->AddByte(0x05);
+
+        # New position
+        $msg->addShort($newX); # Start map position
+        $msg->addShort($newY);
+        $msg->addByte($newZ);
+
+
+        if($oldY > $newY) {
+            $msg->addByte(0x65);
+
+            $this->GetMapDescription($oldX - 8, $newY - 6, $newZ, 18, 1, $msg, $floorId);
+        } elseif ($oldY < $newY) {
+            $msg->addByte(0x67);
+
+            $this->GetMapDescription($oldX - 8, $newY + 7, $newZ, 18, 1, $msg, $floorId);
+        }
+
+        if($oldX > $newX) {
+            $msg->addByte(0x66);
+
+            $this->GetMapDescription($oldX + 9, $newY - 6, $newZ, 1, 14, $msg, $floorId);
+        } elseif ($oldX < $newX) {
+            $msg->addByte(0x68);
+
+            $this->GetMapDescription($oldX - 8, $newY - 6, $newZ, 1, 14, $msg, $floorId);
+        }
+
+        return $msg;
+    }
+
+    private function GetMapDescription(int $x, int $y, int $z, int $width, int $height, OutputMessage $msg, int $floorId = 351)
+    {
+        $skip = -1;
+
+        $startz = 7;
+        $endz = 0;
+        $zstep = -1;
+
+        if($z > 7) {
+            $startz = $z - 2;
+            $endz = min(15, $z + 2);
+            $zstep = 1;
+        }
+
+        for($nz = $startz; $nz != $endz + $zstep; $nz += $zstep) {
+            $this->GetFloorDescription($msg, $x, $y, $nz, $width, $height, $z - $nz, $skip, $floorId);
+        }
+
+        if($skip >= 0) {
+            $msg->addByte($skip);
+            $msg->addByte(0xFF);
+        }
+
+    }
+
+    private function GetFloorDescription(OutputMessage $msg, int $x, int $y, int $z, int $width, int $height, int $offset, int &$skip, int $floorId = 351)
+    {
+        for($nx = 0; $nx < $width; $nx++) {
+            for($ny = 0; $ny < $height; $ny++) {
+                if($z == 7) { // Symulacja, że pod i nad mapą nie ma nic
+                    if($skip >= 0) {
+                        $msg->addByte($skip);
+                        $msg->addByte(0xFF);
+                    }
+                    $skip = 0;
+
+                    $this->GetTileDescription($msg, $floorId);
+                } else {
+                    $skip ++;
+                    if($skip == 0xFF) {
+                        $msg->addByte(0xFF);
+                        $msg->addByte(0xFF);
+                        $skip -= 1;
+                    }
+                }
+            }
+        }
+    }
+
+    private function GetTileDescription(OutputMessage $msg, int $floorId = 351)
+    {
+        $msg->addShort($floorId);
     }
 }
 
