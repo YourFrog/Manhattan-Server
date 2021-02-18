@@ -24,6 +24,9 @@ class GameProtocol extends AbstractProtocol
     const COMMAND_REQUEST_FOR_CHANNELS_IN_DIALOG = 0x97;
     const COMMAND_CREATE_NEW_PRIVATE_CAHNNEL = 0x9a;
 
+    const COMMAND_ADD_VIP = 0xDC;
+    const COMMAND_REMOVE_VIP = 0xDD;
+
     const REQUEST_PING = 0x1E;
     const REQUEST_CHANNELS_IN_DIALOG = 0xAB;
     const REQUEST_CREATED_NEW_CHANNEL = 0xAD;
@@ -248,6 +251,17 @@ class GameProtocol extends AbstractProtocol
         $outputMessage->addInteger(0x01); // Player ID
         $outputMessage->addByte(0xFF);
         $outputMessage->addByte(0xD7);
+
+        # VIP list
+        $outputMessage->addByte(0xD2);
+        $outputMessage->addInteger(100); // To jest Guid - chyba id gracza?
+        $outputMessage->addString('Test Offline');
+        $outputMessage->addByte(0);
+
+        $outputMessage->addByte(0xD2);
+        $outputMessage->addInteger(200); // To jest Guid - chyba id gracza?
+        $outputMessage->addString('Test Online');
+        $outputMessage->addByte(1);
 
         $client->send($outputMessage);
         $outputMessage = $client->makeOutputMessage();
@@ -651,7 +665,20 @@ class GameProtocol extends AbstractProtocol
                     $output->addString($channelName . ' channel');
                     $client->send($output);
                 break;
+            case self::COMMAND_ADD_VIP:
+                $outputMessage = $client->makeOutputMessage();
+                $randId = rand(0, 10000);
 
+                $outputMessage->addByte(0xD2);
+                $outputMessage->addInteger($randId); // To jest Guid - chyba id gracza?
+                $outputMessage->addString($buffer->readString());
+                $outputMessage->addByte($randId % 2);
+
+                $client->send($outputMessage);
+                break;
+            case self::COMMAND_REMOVE_VIP:
+                // Server nic nie odpowiada
+                break;
             default:
                     echo 'Unknown protocol ' . $command . ' [0x' . str_pad(dechex($command), 2, '0', STR_PAD_LEFT) . ']' . PHP_EOL;
                 break;
