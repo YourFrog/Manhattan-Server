@@ -373,7 +373,7 @@ class GameProtocol extends AbstractProtocol
                     'z' => 7
                 ];
 
-                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 109);
+                $this->sendMove($output, $oldPosition, $newPosition, 109);
 
                 $client->send($output);
                 break;
@@ -392,7 +392,7 @@ class GameProtocol extends AbstractProtocol
                     'z' => 7
                 ];
 
-                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 109);
+                $this->sendMove($output, $oldPosition, $newPosition, 108);
 
                 $client->send($output);
                 break;
@@ -411,7 +411,7 @@ class GameProtocol extends AbstractProtocol
                     'z' => 7
                 ];
 
-                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 109);
+                $this->sendMove($output, $oldPosition, $newPosition, 107);
 
                 $client->send($output);
                 break;
@@ -430,7 +430,7 @@ class GameProtocol extends AbstractProtocol
                     'z' => 7
                 ];
 
-                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 108);
+                $this->sendMove($output, $oldPosition, $newPosition, 110);
 
                 $client->send($output);
                 break;
@@ -450,7 +450,7 @@ class GameProtocol extends AbstractProtocol
                     'z' => 7
                 ];
 
-                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 351);
+                $this->sendMove($output, $oldPosition, $newPosition, 351);
 
                 $client->send($output);
                 break;
@@ -469,7 +469,7 @@ class GameProtocol extends AbstractProtocol
                     'z' => 7
                 ];
 
-                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 110);
+                $this->sendMove($output, $oldPosition, $newPosition, 351);
 
                 $client->send($output);
                 break;
@@ -488,7 +488,7 @@ class GameProtocol extends AbstractProtocol
                     'z' => 7
                 ];
 
-                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 110);
+                $this->sendMove($output, $oldPosition, $newPosition, 351);
 
                 $client->send($output);
                 break;
@@ -508,7 +508,7 @@ class GameProtocol extends AbstractProtocol
                     'z' => 7
                 ];
 
-                $this->sendMove($output, array_values($oldPosition), array_values($newPosition), 110);
+                $this->sendMove($output, $oldPosition, $newPosition, 351);
 
                 $client->send($output);
                 break;
@@ -662,8 +662,8 @@ class GameProtocol extends AbstractProtocol
     {
         $msg->AddByte(0x6D);
 
-        [$oldX, $oldY, $oldZ] = $oldPosition;
-        [$newX, $newY, $newZ] = $newPosition;
+        ['x' => $oldX, 'y' => $oldY, 'z' => $oldZ] = $oldPosition;
+        ['x' => $newX, 'y' => $newY, 'z' => $newZ] = $newPosition;
 
         # Old position
         $msg->addShort($oldX); # Start map position
