@@ -19,10 +19,16 @@ class GameProtocol extends AbstractProtocol
     const COMMAND_SET_OUTFIT = 0xD3;
     const COMMAND_REQUEST_OUTFIT_WINDOW =  0xD2;
 
+    const COMMAND_USE_ITEM = 0x82;
+
     # Chat
     const COMMAND_PLAYER_SAY = 0x96;
     const COMMAND_REQUEST_FOR_CHANNELS_IN_DIALOG = 0x97;
     const COMMAND_CREATE_NEW_PRIVATE_CAHNNEL = 0x9a;
+
+    # Quest log
+    const COMMAND_OPEN_QUEST_LOG = 0xF0;
+    const COMMAND_SHOW_MISSION_DESCRIPTION = 0xF1;
 
     const COMMAND_ADD_VIP = 0xDC;
     const COMMAND_REMOVE_VIP = 0xDD;
@@ -31,17 +37,10 @@ class GameProtocol extends AbstractProtocol
     const REQUEST_CHANNELS_IN_DIALOG = 0xAB;
     const REQUEST_CREATED_NEW_CHANNEL = 0xAD;
     const REQUEST_CREATURE_SET_OUTFIT = 0x8E;
+    const REQUEST_MESSAGE = 0xB4;
 
-    # Movement
-    const COMMAND_MOVE_NORTH = 0x65;
-    const COMMAND_MOVE_EAST = 0x66;
-    const COMMAND_MOVE_SOUTH = 0x67;
-    const COMMAND_MOVE_WEST = 0x68;
-
-    const COMMAND_MOVE_NORTH_WEST = 0x6D;
-    const COMMAND_MOVE_NORTH_EAST = 0x6A;
-    const COMMAND_MOVE_SOUTH_WEST = 0x6C;
-    const COMMAND_MOVE_SOUTH_EAST = 0x6B;
+    const REQUEST_QUEST_LOG = 0xF0;
+    const REQUEST_MISSION_DESCRIPTION = 0xF1;
 
     const SLOT_WHEREEVER = 0x00;
     const SLOT_FIRST = 0x01;
@@ -57,6 +56,24 @@ class GameProtocol extends AbstractProtocol
     const SLOT_AMMO = 0x0A;
     const SLOT_DEPOT = 0x0B;
     const SLOT_LAST = self::SLOT_DEPOT;
+
+    const ITEM_BACKPACK = 2854;
+
+    # Movement
+    const COMMAND_MOVE_NORTH = 0x65;
+    const COMMAND_MOVE_EAST = 0x66;
+    const COMMAND_MOVE_SOUTH = 0x67;
+    const COMMAND_MOVE_WEST = 0x68;
+
+    const COMMAND_MOVE_NORTH_WEST = 0x6D;
+    const COMMAND_MOVE_NORTH_EAST = 0x6A;
+    const COMMAND_MOVE_SOUTH_WEST = 0x6C;
+    const COMMAND_MOVE_SOUTH_EAST = 0x6B;
+
+    #Outfits
+    const OUTFIT_GAMEMASTER = 0x4B;
+    const OUTFIT_MALE_HUNTER = 0x81;
+    const OUTFIT_MALE_MAGE = 0x80;
 
     private function addMap(OutputMessage $outputMessage) {
         $skip = -1;
@@ -176,8 +193,9 @@ class GameProtocol extends AbstractProtocol
         $outputMessage->addByte(0x79);
         $outputMessage->addByte(self::SLOT_NECKLACE);
 
-        $outputMessage->addByte(0x79);
+        $outputMessage->addByte(0x78);
         $outputMessage->addByte(self::SLOT_BACKPACK);
+        $outputMessage->addShort(2854); // Item ID, backpack
 
         $outputMessage->addByte(0x79);
         $outputMessage->addByte(self::SLOT_ARMOR);
@@ -264,30 +282,11 @@ class GameProtocol extends AbstractProtocol
         $outputMessage->addByte(1);
 
         $client->send($outputMessage);
-        $outputMessage = $client->makeOutputMessage();
-        # Outfits ?
-        $outputMessage->addByte(0xC8);
-        $outputMessage->addShort(0x4B);   # Gamemaster (ID: 75)
-        $outputMessage->addByte(0x00);
-        $outputMessage->addByte(0x00);
-        $outputMessage->addByte(0x00);
-        $outputMessage->addByte(0x00);
-        $outputMessage->addByte(0x00);
 
-        $outputMessage->addByte(0x01);         // Outfit count
-        $outputMessage->addShort(0x4B);
-        $outputMessage->addString("Gamemaster");
-        $outputMessage->addByte(0x00);
+        $this->sendOutfitWindow($client);
+        $this->sendCancelMessage($client, 'Test');
 
-        $client->send($outputMessage);
-        $outputMessage = $client->makeOutputMessage();
-//
-        # Message??
-        $outputMessage->addByte(0xB4);
-        $outputMessage->addByte(0x15);
-        $outputMessage->addString("Test");
 
-        $client->send($outputMessage);
         $outputMessage = $client->makeOutputMessage();
 
         #Icons (? maybe not sending)
@@ -295,6 +294,8 @@ class GameProtocol extends AbstractProtocol
         $outputMessage->addShort(0x00);
 
         $client->send($outputMessage);
+
+        $this->sendSelfOnBattleList($client);
 
 
         #Ping
@@ -357,15 +358,10 @@ class GameProtocol extends AbstractProtocol
                         $output = $client->makeOutputMessage();
                         $output->addByte(self::REQUEST_PING);
 
+                        echo 'ping? ';
                         $client->send($output);
 
-                        # Test cancel message
-                        $output = $client->makeOutputMessage();
-                        $output->addByte(0xB4);
-                        $output->addByte(MessageType::MSG_INFO_DESCR);
-                        $output->addString("Cancel something");
-
-                        $client->send($output);
+                        $this->sendLookMessage($client, "Send ping :)");
                     });
                 break;
             case 0x64:
@@ -558,123 +554,155 @@ class GameProtocol extends AbstractProtocol
                     var_dump('Command of player message');
                 break;
 
-            case self::COMMAND_REQUEST_OUTFIT_WINDOW:
-                    $outputMessage = $client->makeOutputMessage();
-                    # Outfits ?
-                    $outputMessage->addByte(0xC8);
-                    $outputMessage->addShort(0x4B);   # Gamemaster (ID: 75)
-                    $outputMessage->addByte(0x00);
-                    $outputMessage->addByte(0x00);
-                    $outputMessage->addByte(0x00);
-                    $outputMessage->addByte(0x00);
-                    $outputMessage->addByte(0x00);
+            case self::COMMAND_USE_ITEM:
+                $x = $buffer->readUnsignedShort();
+                $y = $buffer->readUnsignedShort();
+                $z = $buffer->readUnsignedByte();
 
-                    $outfits = [
-                        ['id' => 0x4B, 'name' => 'Game master'],
-                        ['id' => 0x81, 'name' => 'Hunter'],
-                        ['id' => 0x80, 'name' => 'Mage']
-                    ];
+                $spriteID = $buffer->readUnsignedShort();
+                $stack = $buffer->readUnsignedByte();
+                $index = $buffer->readUnsignedByte(); // This is parent ID ?
 
-                    $cc = 0x120;
-                    $outputMessage->addByte($cc);         // Outfit count
-                    for($i = 0; $i < $cc; $i++) {
-                        $outputMessage->addShort(0x98 - $i);
-                        $outputMessage->addString("Gamemaster " . dechex(0x98 - $i));
-                        $outputMessage->addByte(0x00);
+
+                if( $spriteID == self::ITEM_BACKPACK ) {
+                    $cid = random_int(0, 10);
+                    $items = [self::ITEM_BACKPACK];
+
+                    $output = $client->makeOutputMessage();
+
+                    $output->addByte(0x6E);  // Command
+                    $output->addByte($cid);  // CID
+
+                    $output->addShort(self::ITEM_BACKPACK);  // Command
+//                        $output->addByte(0xFF);
+                    $output->addString('Backpack.. (' . $cid . ')');
+
+                    $output->addByte(0x0B); // Capacity
+                    $output->addByte(0x00); // ID Parent
+
+//                        $output->addByte(0x00); // Drag and drop
+//                        $output->addByte(0x00); // Pagination
+
+                    $itemCC = count($items);
+                    $output->addByte($itemCC); // Container size
+//                        $output->addShort(0x00); // First index
+
+                    foreach($items as $item) {
+                        $output->addShort($item);
                     }
 
-                    $client->send($outputMessage);
+                    $client->send($output);
+                }
+
+                var_dump($x, $y, $z, $spriteID, $stack, $index);
+
                 break;
 
-            case self::COMMAND_SET_OUTFIT:
-                    // Ignore set outfit
-                    $output = $client->makeOutputMessage();
-                    $output->AddByte(0x8E);
-                    $output->addInteger(0x01); // Player ID
-                    $output->addShort(0x4B);   # Gamemaster (ID: 75)
-                    $output->addByte(0x00);
-                    $output->addByte(0x00);
-                    $output->addByte(0x00);
-                    $output->addByte(0x00);
-                    $output->addByte(0x00);
-                    $client->send($output);
+            case self::COMMAND_REQUEST_OUTFIT_WINDOW:
+                $this->sendOutfitWindow($client);
+                break;
 
+            case 0x82: // Use item
+                $output = $client->makeOutputMessage();
 
-                    $output = $client->makeOutputMessage();
-                    $output->AddByte(0x6A);
-                    $output->addShort(1024); # Start map position
-                    $output->addShort(1024);
-                    $output->addByte(0x6);
+                $x = $buffer->readUnsignedShort();
+                $y = $buffer->readUnsignedShort();
+                $z = $buffer->readUnsignedByte();
 
-                    $output->addShort(0x61);
-                    $output->addInteger(0x00);
-                    $output->addInteger(0x01);
-                    $output->addString("Yukoriko");
-                $output->addByte(0x32); // HP Bar in percent
-                $output->addByte(0x01); // Look direction
-                $output->addShort(0x4B);   # Gamemaster (ID: 75)
-                $output->addByte(0x01);
-                $output->addByte(0x01);
-                $output->addByte(0x01);
-                $output->addByte(0x01);
-                $output->addByte(0x01);
-
-                $output->addByte(0xFF); // Light
-                $output->addByte(0xFF);
-
-                $output->addShort(0x200);
-
-                $output->addByte(0x00); // Skull
-                $output->addByte(0x00); // Party shield
-            // Outfit??
+                $spriteID = $buffer->readUnsignedShort();
+                $stackposition = $buffer->readUnsignedByte();
+                $index = $buffer->readUnsignedByte();
 
                 $client->send($output);
 
+                // Position pos = msg.getPosition();
+                // uint16_t spriteId = msg.get<uint16_t>();
+                // uint8_t stackpos = msg.getByte();
+                // uint8_t index = msg.getByte();
+                break;
+
+            case self::COMMAND_SET_OUTFIT:
+                // Ignore set outfit
+                $output = $client->makeOutputMessage();
+                $output->AddByte(0x8E);
+                $output->addInteger(0x01); // Player ID
+                $output->addShort(0x4B);   # Gamemaster (ID: 75)
+                $output->addByte(0x00);
+                $output->addByte(0x00);
+                $output->addByte(0x00);
+                $output->addByte(0x00);
+                $output->addByte(0x00);
+                $client->send($output);
+
+                $this->sendSelfOnBattleList($client);
                 break;
             case 0xBE:
                     // Ignore cancel move
                     var_dump('Command of Cancel move!!');
                 break;
 
+
+
             case self::COMMAND_REQUEST_FOR_CHANNELS_IN_DIALOG:
-                    $channels = [
-                        ['id' => 1, 'name' => 'Radio ZET'],
-                        ['id' => 2, 'name' => 'Polish unnamed'],
-                    ];
+                $channels = [
+                    ['id' => 1, 'name' => 'Radio ZET'],
+                    ['id' => 2, 'name' => 'Polish unnamed'],
+                ];
 
-                    $cc = count($channels);
+                $cc = count($channels);
 
-                    $output = $client->makeOutputMessage();
-                    $output->AddByte(self::REQUEST_CHANNELS_IN_DIALOG);
-                    $output->addByte($cc);
+                $output = $client->makeOutputMessage();
+                $output->AddByte(self::REQUEST_CHANNELS_IN_DIALOG);
+                $output->addByte($cc);
 
-                    for($i = 0; $i < $cc; $i++) {
-                        $channel = $channels[$i];
+                for($i = 0; $i < $cc; $i++) {
+                    $channel = $channels[$i];
 
-                        $output->addShort($channel['id']);
-                        $output->addString($channel['name']);
-                    }
-                    $client->send($output);
+                    $output->addShort($channel['id']);
+                    $output->addString($channel['name']);
+                }
+                $client->send($output);
                 break;
 
             case self::COMMAND_CREATE_NEW_PRIVATE_CAHNNEL:
-                    $channelName = $buffer->readString();
+                $channelName = $buffer->readString();
 
-                    $output = $client->makeOutputMessage();
-                    $output->AddByte(self::REQUEST_CREATED_NEW_CHANNEL);
-                    $output->addString($channelName . ' channel');
-                    $client->send($output);
+                $output = $client->makeOutputMessage();
+                $output->AddByte(self::REQUEST_CREATED_NEW_CHANNEL);
+                $output->addString($channelName . ' channel');
+                $client->send($output);
                 break;
-            case self::COMMAND_ADD_VIP:
-                $outputMessage = $client->makeOutputMessage();
-                $randId = rand(0, 10000);
 
-                $outputMessage->addByte(0xD2);
-                $outputMessage->addInteger($randId); // To jest Guid - chyba id gracza?
-                $outputMessage->addString($buffer->readString());
-                $outputMessage->addByte($randId % 2);
+            case self::COMMAND_OPEN_QUEST_LOG:
+                $questCC = 10;
+                $output = $client->makeOutputMessage();
 
-                $client->send($outputMessage);
+                $output->addByte(self::REQUEST_QUEST_LOG);
+                $output->addShort($questCC);
+
+                for($i = 0; $i < $questCC; $i++) {
+                    $output->addShort($i);
+                    $output->addString('Quest ID: ' . $i);
+                    $output->addByte(random_int(0, 1));
+                }
+
+                $client->send($output);
+                break;
+
+            case self::COMMAND_SHOW_MISSION_DESCRIPTION:
+                $missionCC = 10;
+                $output = $client->makeOutputMessage();
+
+                $output->addByte(self::REQUEST_MISSION_DESCRIPTION);
+                $output->addShort(0x01); // Quest ID
+                $output->addByte($missionCC);
+
+                for($i = 0; $i < $missionCC; $i++) {
+                    $output->addString('Quest Name: ' . $i);
+                    $output->addString('Quest Description: ' . $i);
+                }
+
+                $client->send($output);
                 break;
             case self::COMMAND_REMOVE_VIP:
                 // Server nic nie odpowiada
@@ -683,6 +711,92 @@ class GameProtocol extends AbstractProtocol
                     echo 'Unknown protocol ' . $command . ' [0x' . str_pad(dechex($command), 2, '0', STR_PAD_LEFT) . ']' . PHP_EOL;
                 break;
         }
+    }
+
+    private function sendCancelMessage(Client $client, string $message)
+    {
+        $this->sendMessage($client, MessageType::MSG_STATUS_DEFAULT, $message);
+    }
+
+    private function sendLookMessage(Client $client, string $message)
+    {
+        $this->sendMessage($client, MessageType::MSG_INFO_DESCR, $message);
+    }
+
+    private function sendMessage(Client $client, int $messageType, string $message)
+    {
+        $outputMessage = $client->makeOutputMessage();
+//
+        # Message??
+        $outputMessage->addByte(self::REQUEST_MESSAGE);
+        $outputMessage->addByte($messageType);
+        $outputMessage->addString($message);
+
+        $client->send($outputMessage);
+    }
+
+    private function sendSelfOnBattleList(Client $client)
+    {
+        $output = $client->makeOutputMessage();
+        $output->AddByte(0x6A);
+        $output->addShort(1024); # Start map position
+        $output->addShort(1024);
+        $output->addByte(0x6);
+
+        $output->addShort(0x61);
+        $output->addInteger(0x00);
+        $output->addInteger(0x01);
+        $output->addString("Yukoriko");
+        $output->addByte(0x32); // HP Bar in percent
+        $output->addByte(0x01); // Look direction
+        $output->addShort(0x4B);   # Gamemaster (ID: 75)
+        $output->addByte(0x01);
+        $output->addByte(0x01);
+        $output->addByte(0x01);
+        $output->addByte(0x01);
+        $output->addByte(0x01);
+
+        $output->addByte(0xFF); // Light
+        $output->addByte(0xFF);
+
+        $output->addShort(0x200);
+
+        $output->addByte(0x00); // Skull
+        $output->addByte(0x00); // Party shield
+        // Outfit??
+
+        $client->send($output);
+    }
+
+    private function sendOutfitWindow(Client $client)
+    {
+        $outputMessage = $client->makeOutputMessage();
+        # Outfits ?
+        $outputMessage->addByte(0xC8);
+        $outputMessage->addShort(self::OUTFIT_GAMEMASTER);   # Gamemaster (ID: 75)
+        $outputMessage->addByte(0x00);
+        $outputMessage->addByte(0x00);
+        $outputMessage->addByte(0x00);
+        $outputMessage->addByte(0x00);
+        $outputMessage->addByte(0x00);
+
+        $outfits = [
+            ['id' => self::OUTFIT_GAMEMASTER, 'name' => 'Game master', 'addons' => 0x0],
+            ['id' => self::OUTFIT_MALE_HUNTER, 'name' => 'Hunter', 'addons' => 0x0],
+            ['id' => self::OUTFIT_MALE_MAGE, 'name' => 'Mage', 'addons' => 0x0]
+        ];
+
+        $cc = count($outfits);
+        $outputMessage->addByte($cc);         // Outfit count
+        for($i = 0; $i < $cc; $i++) {
+            $outfit = $outfits[$i];
+
+            $outputMessage->addShort($outfit['id']);
+            $outputMessage->addString($outfit['name']);
+            $outputMessage->addByte($outfit['addons']);
+        }
+
+        $client->send($outputMessage);
     }
 
     private function sendMove(OutputMessage $msg, array $oldPosition, array $newPosition, int $floorId = 351): OutputMessage
