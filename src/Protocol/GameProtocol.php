@@ -75,6 +75,9 @@ class GameProtocol extends AbstractProtocol
     const OUTFIT_MALE_HUNTER = 0x81;
     const OUTFIT_MALE_MAGE = 0x80;
 
+    /** @var Position */
+    private $playerPosition;
+
     private function addMap(OutputMessage $outputMessage) {
         $skip = -1;
         for($z = 7; $z != -1; $z += -1) {
@@ -102,6 +105,7 @@ class GameProtocol extends AbstractProtocol
      */
     public function parseFirstMessage(Client $client, string $message)
     {
+        $this->playerPosition = new Position(1024, 1024, 7, 1);
         $buffer = new BinaryReader($message);
 
         $messageLength = $buffer->readUnsignedShort(); #
@@ -167,9 +171,9 @@ class GameProtocol extends AbstractProtocol
 
         #Map
         $outputMessage->addByte(0x64);
-        $outputMessage->addShort(1024); # Start map position
-        $outputMessage->addShort(1025);
-        $outputMessage->addByte(6);
+        $outputMessage->addShort($this->playerPosition->x); # Start map position
+        $outputMessage->addShort($this->playerPosition->y);
+        $outputMessage->addByte($this->playerPosition->z);
 
         $this->addMap($outputMessage);
 
@@ -179,9 +183,9 @@ class GameProtocol extends AbstractProtocol
 
         // Effect
         $outputMessage->addByte(0x83);
-        $outputMessage->addShort(1024); # Start map position
-        $outputMessage->addShort(1024);
-        $outputMessage->addByte(7);
+        $outputMessage->addShort($this->playerPosition->x); # Start map position
+        $outputMessage->addShort($this->playerPosition->y);
+        $outputMessage->addByte($this->playerPosition->z);
         $outputMessage->addByte(0x0B); # Effect
 
         $client->send($outputMessage);
@@ -295,7 +299,7 @@ class GameProtocol extends AbstractProtocol
 
         $client->send($outputMessage);
 
-        $this->sendSelfOnBattleList($client);
+        $this->sendSelfOnBattleList($client, new Position(1024, 1024, 7, 1));
 
 
         #Ping
@@ -371,156 +375,94 @@ class GameProtocol extends AbstractProtocol
             case self::COMMAND_MOVE_NORTH:
                 $output = $client->makeOutputMessage();
 
-                $oldPosition = [
-                    'x' => 1024,
-                    'y' => 1025,
-                    'z' => 7
-                ];
+                $oldPosition = clone $this->playerPosition; // Clone bo inaczej pracuje na jednej instancji
+                $this->playerPosition->goNorth();
 
-                $newPosition = [
-                    'x' => 1024,
-                    'y' => 1024,
-                    'z' => 7
-                ];
-
-                $this->sendMove($output, $oldPosition, $newPosition, 109);
+                $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
+                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::NORTH);
                 break;
             case self::COMMAND_MOVE_EAST:
                 $output = $client->makeOutputMessage();
 
-                $oldPosition = [
-                    'x' => 1024,
-                    'y' => 1024,
-                    'z' => 7
-                ];
+                $oldPosition = clone $this->playerPosition; // Clone bo inaczej pracuje na jednej instancji
+                $this->playerPosition->goEast();
 
-                $newPosition = [
-                    'x' => 1023,
-                    'y' => 1024,
-                    'z' => 7
-                ];
-
-                $this->sendMove($output, $oldPosition, $newPosition, 108);
+                $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
+                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::EAST);
                 break;
             case self::COMMAND_MOVE_SOUTH:
                 $output = $client->makeOutputMessage();
 
-                $oldPosition = [
-                    'x' => 1024,
-                    'y' => 1024,
-                    'z' => 7
-                ];
+                $oldPosition = clone $this->playerPosition; // Clone bo inaczej pracuje na jednej instancji
+                $this->playerPosition->goSouth();
 
-                $newPosition = [
-                    'x' => 1024,
-                    'y' => 1025,
-                    'z' => 7
-                ];
-
-                $this->sendMove($output, $oldPosition, $newPosition, 107);
+                $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
+                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::SOUTH);
                 break;
             case self::COMMAND_MOVE_WEST:
                 $output = $client->makeOutputMessage();
 
-                $oldPosition = [
-                    'x' => 1024,
-                    'y' => 1024,
-                    'z' => 7
-                ];
+                $oldPosition = clone $this->playerPosition; // Clone bo inaczej pracuje na jednej instancji
+                $this->playerPosition->goWest();
 
-                $newPosition = [
-                    'x' => 1025,
-                    'y' => 1024,
-                    'z' => 7
-                ];
-
-                $this->sendMove($output, $oldPosition, $newPosition, 110);
+                $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
+                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::WEST);
                 break;
-
             case self::COMMAND_MOVE_SOUTH_EAST:
                 $output = $client->makeOutputMessage();
 
-                $oldPosition = [
-                    'x' => 1024,
-                    'y' => 1024,
-                    'z' => 7
-                ];
+                $oldPosition = clone $this->playerPosition; // Clone bo inaczej pracuje na jednej instancji
+                $this->playerPosition->goSouth();
+                $this->playerPosition->goEast();
 
-                $newPosition = [
-                    'x' => 1023,
-                    'y' => 1025,
-                    'z' => 7
-                ];
-
-                $this->sendMove($output, $oldPosition, $newPosition, 351);
+                $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
+                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::EAST);
                 break;
             case self::COMMAND_MOVE_SOUTH_WEST:
                 $output = $client->makeOutputMessage();
 
-                $oldPosition = [
-                    'x' => 1024,
-                    'y' => 1024,
-                    'z' => 7
-                ];
+                $oldPosition = clone $this->playerPosition; // Clone bo inaczej pracuje na jednej instancji
+                $this->playerPosition->goSouth();
+                $this->playerPosition->goWest();
 
-                $newPosition = [
-                    'x' => 1025,
-                    'y' => 1025,
-                    'z' => 7
-                ];
-
-                $this->sendMove($output, $oldPosition, $newPosition, 351);
+                $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
+                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::WEST);
                 break;
             case self::COMMAND_MOVE_NORTH_EAST:
                 $output = $client->makeOutputMessage();
 
-                $oldPosition = [
-                    'x' => 1024,
-                    'y' => 1024,
-                    'z' => 7
-                ];
+                $oldPosition = clone $this->playerPosition; // Clone bo inaczej pracuje na jednej instancji
+                $this->playerPosition->goNorth();
+                $this->playerPosition->goEast();
 
-                $newPosition = [
-                    'x' => 1023,
-                    'y' => 1023,
-                    'z' => 7
-                ];
-
-                $this->sendMove($output, $oldPosition, $newPosition, 351);
+                $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
+                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::EAST);
                 break;
-
             case self::COMMAND_MOVE_NORTH_WEST:
                 $output = $client->makeOutputMessage();
 
-                $oldPosition = [
-                    'x' => 1024,
-                    'y' => 1024,
-                    'z' => 7
-                ];
+                $oldPosition = clone $this->playerPosition; // Clone bo inaczej pracuje na jednej instancji
+                $this->playerPosition->goNorth();
+                $this->playerPosition->goWest();
 
-                $newPosition = [
-                    'x' => 1025,
-                    'y' => 1023,
-                    'z' => 7
-                ];
-
-                $this->sendMove($output, $oldPosition, $newPosition, 351);
+                $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
+                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::WEST);
                 break;
             case 0x6F:
                 // Ignore player dance up
@@ -531,9 +473,9 @@ class GameProtocol extends AbstractProtocol
                     var_dump('Ignore player dance right');
                     $output = $client->makeOutputMessage();
                     $output->AddByte(0x6B);
-                    $output->addShort(1024); # Start map position
-                    $output->addShort(1024);
-                    $output->addByte(7);
+                    $output->addShort($this->playerPosition->x); # Start map position
+                    $output->addShort($this->playerPosition->y);
+                    $output->addByte($this->playerPosition->z);
                     $output->AddByte(0x00);
                     $output->addShort(0x63); /*99*/
                     $output->addInteger(0x01); // Player ID
@@ -634,7 +576,7 @@ class GameProtocol extends AbstractProtocol
                 $output->addByte(0x00);
                 $client->send($output);
 
-                $this->sendSelfOnBattleList($client);
+                $this->sendSelfOnBattleList($client, new Position(1024, 1024, 7, 1));
                 break;
             case 0xBE:
                     // Ignore cancel move
@@ -735,20 +677,20 @@ class GameProtocol extends AbstractProtocol
         $client->send($outputMessage);
     }
 
-    private function sendSelfOnBattleList(Client $client)
+    private function sendSelfOnBattleList(Client $client, Position $position, int $dir = Directions::SOUTH)
     {
         $output = $client->makeOutputMessage();
         $output->AddByte(0x6A);
-        $output->addShort(1024); # Start map position
-        $output->addShort(1024);
-        $output->addByte(0x6);
+        $output->addShort($position->x); # Start map position
+        $output->addShort($position->y);
+        $output->addByte($position->z);
 
         $output->addShort(0x61);
         $output->addInteger(0x00);
         $output->addInteger(0x01);
         $output->addString("Yukoriko");
         $output->addByte(0x32); // HP Bar in percent
-        $output->addByte(0x01); // Look direction
+        $output->addByte($dir); // Look direction
         $output->addShort(0x4B);   # Gamemaster (ID: 75)
         $output->addByte(0x01);
         $output->addByte(0x01);
@@ -799,45 +741,41 @@ class GameProtocol extends AbstractProtocol
         $client->send($outputMessage);
     }
 
-    private function sendMove(OutputMessage $msg, array $oldPosition, array $newPosition, int $floorId = 351): OutputMessage
+    private function sendMove(OutputMessage $msg, Position $oldPosition, Position $newPosition, int $floorId = 351): OutputMessage
     {
         $msg->AddByte(0x6D);
 
-        ['x' => $oldX, 'y' => $oldY, 'z' => $oldZ] = $oldPosition;
-        ['x' => $newX, 'y' => $newY, 'z' => $newZ] = $newPosition;
-
         # Old position
-        $msg->addShort($oldX); # Start map position
-        $msg->addShort($oldY);
-        $msg->addByte($oldZ);
+        $msg->addShort($oldPosition->x); # Start map position
+        $msg->addShort($oldPosition->y);
+        $msg->addByte($oldPosition->z);
 
         # Stack
-        $msg->AddByte(0x05);
+        $msg->AddByte($newPosition->stack);
 
         # New position
-        $msg->addShort($newX); # Start map position
-        $msg->addShort($newY);
-        $msg->addByte($newZ);
+        $msg->addShort($newPosition->x); # Start map position
+        $msg->addShort($newPosition->y);
+        $msg->addByte($newPosition->z);
 
-
-        if($oldY > $newY) {
+        if($oldPosition->y > $newPosition->y) {
             $msg->addByte(0x65);
 
-            $this->GetMapDescription($oldX - 8, $newY - 6, $newZ, 18, 1, $msg, $floorId);
-        } elseif ($oldY < $newY) {
+            $this->GetMapDescription($oldPosition->x - 8, $newPosition->y - 6, $newPosition->z, 18, 1, $msg, $floorId);
+        } elseif ($oldPosition->y < $newPosition->y) {
             $msg->addByte(0x67);
 
-            $this->GetMapDescription($oldX - 8, $newY + 7, $newZ, 18, 1, $msg, $floorId);
+            $this->GetMapDescription($oldPosition->x - 8, $newPosition->y + 7, $newPosition->z, 18, 1, $msg, $floorId);
         }
 
-        if($oldX > $newX) {
+        if($oldPosition->x < $newPosition->x) {
             $msg->addByte(0x66);
 
-            $this->GetMapDescription($oldX + 9, $newY - 6, $newZ, 1, 14, $msg, $floorId);
-        } elseif ($oldX < $newX) {
+            $this->GetMapDescription($oldPosition->x + 9, $newPosition->y - 6, $newPosition->z, 1, 14, $msg, $floorId);
+        } elseif ($oldPosition->x > $newPosition->x) {
             $msg->addByte(0x68);
 
-            $this->GetMapDescription($oldX - 8, $newY - 6, $newZ, 1, 14, $msg, $floorId);
+            $this->GetMapDescription($oldPosition->x - 8, $newPosition->y - 6, $newPosition->z, 1, 14, $msg, $floorId);
         }
 
         return $msg;
@@ -946,3 +884,44 @@ class Directions {
     const NORTHWEST = 6;
     const NORTHEAST = 7;
 };
+
+class Position
+{
+    public $x, $y, $z, $stack;
+
+    /**
+     * Position constructor.
+     *
+     * @param $x
+     * @param $y
+     * @param $z
+     * @param $stack
+     */
+    public function __construct($x, $y, $z, $stack)
+    {
+        $this->x = $x;
+        $this->y = $y;
+        $this->z = $z;
+        $this->stack = $stack;
+    }
+
+    public function goSouth(): void
+    {
+        $this->y += 1;
+    }
+
+    public function goNorth(): void
+    {
+        $this->y -= 1;
+    }
+
+    public function goEast(): void
+    {
+        $this->x += 1;
+    }
+
+    public function goWest(): void
+    {
+        $this->x -= 1;
+    }
+}
