@@ -299,7 +299,7 @@ class GameProtocol extends AbstractProtocol
 
         $client->send($outputMessage);
 
-        $this->sendSelfOnBattleList($client, new Position(1024, 1024, 7, 1));
+        $this->sendSelfOnBattleList($client, false, $this->playerPosition);
 
 
         #Ping
@@ -381,7 +381,7 @@ class GameProtocol extends AbstractProtocol
                 $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
-                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::NORTH);
+                $this->sendSelfOnBattleList($client, true, $this->playerPosition, Directions::NORTH);
                 break;
             case self::COMMAND_MOVE_EAST:
                 $output = $client->makeOutputMessage();
@@ -392,7 +392,7 @@ class GameProtocol extends AbstractProtocol
                 $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
-                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::EAST);
+                $this->sendSelfOnBattleList($client, true, $this->playerPosition, Directions::EAST);
                 break;
             case self::COMMAND_MOVE_SOUTH:
                 $output = $client->makeOutputMessage();
@@ -403,7 +403,7 @@ class GameProtocol extends AbstractProtocol
                 $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
-                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::SOUTH);
+                $this->sendSelfOnBattleList($client, true, $this->playerPosition, Directions::SOUTH);
                 break;
             case self::COMMAND_MOVE_WEST:
                 $output = $client->makeOutputMessage();
@@ -414,7 +414,7 @@ class GameProtocol extends AbstractProtocol
                 $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
-                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::WEST);
+                $this->sendSelfOnBattleList($client, true, $this->playerPosition, Directions::WEST);
                 break;
             case self::COMMAND_MOVE_SOUTH_EAST:
                 $output = $client->makeOutputMessage();
@@ -426,7 +426,7 @@ class GameProtocol extends AbstractProtocol
                 $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
-                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::EAST);
+                $this->sendSelfOnBattleList($client, true, $this->playerPosition, Directions::EAST);
                 break;
             case self::COMMAND_MOVE_SOUTH_WEST:
                 $output = $client->makeOutputMessage();
@@ -438,7 +438,7 @@ class GameProtocol extends AbstractProtocol
                 $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
-                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::WEST);
+                $this->sendSelfOnBattleList($client, true, $this->playerPosition, Directions::WEST);
                 break;
             case self::COMMAND_MOVE_NORTH_EAST:
                 $output = $client->makeOutputMessage();
@@ -450,7 +450,7 @@ class GameProtocol extends AbstractProtocol
                 $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
-                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::EAST);
+                $this->sendSelfOnBattleList($client, true, $this->playerPosition, Directions::EAST);
                 break;
             case self::COMMAND_MOVE_NORTH_WEST:
                 $output = $client->makeOutputMessage();
@@ -462,7 +462,7 @@ class GameProtocol extends AbstractProtocol
                 $this->sendMove($output, $oldPosition, $this->playerPosition, 351);
 
                 $client->send($output);
-                $this->sendSelfOnBattleList($client, $this->playerPosition, Directions::WEST);
+                $this->sendSelfOnBattleList($client, true, $this->playerPosition, Directions::WEST);
                 break;
             case 0x6F:
                 // Ignore player dance up
@@ -576,7 +576,7 @@ class GameProtocol extends AbstractProtocol
                 $output->addByte(0x00);
                 $client->send($output);
 
-                $this->sendSelfOnBattleList($client, new Position(1024, 1024, 7, 1));
+                $this->sendSelfOnBattleList($client, true, $this->playerPosition);
                 break;
             case 0xBE:
                     // Ignore cancel move
@@ -677,7 +677,7 @@ class GameProtocol extends AbstractProtocol
         $client->send($outputMessage);
     }
 
-    private function sendSelfOnBattleList(Client $client, Position $position, int $dir = Directions::SOUTH)
+    private function sendSelfOnBattleList(Client $client, bool $known, Position $position, int $dir = Directions::SOUTH)
     {
         $output = $client->makeOutputMessage();
         $output->AddByte(0x6A);
@@ -685,10 +685,16 @@ class GameProtocol extends AbstractProtocol
         $output->addShort($position->y);
         $output->addByte($position->z);
 
-        $output->addShort(0x61);
-        $output->addInteger(0x00);
-        $output->addInteger(0x01);
-        $output->addString("Yukoriko");
+        if($known) {
+            $output->addShort(0x61);
+            $output->addInteger(0x01);
+        } else {
+            $output->addShort(0x61);
+            $output->addInteger(0x00);
+            $output->addInteger(0x01);
+            $output->addString("Yukoriko");
+        }
+
         $output->addByte(0x32); // HP Bar in percent
         $output->addByte($dir); // Look direction
         $output->addShort(0x4B);   # Gamemaster (ID: 75)
@@ -832,9 +838,52 @@ class GameProtocol extends AbstractProtocol
 
     private function GetTileDescription(OutputMessage $msg, int $floorId = 351)
     {
+
+
+//        $stacks = [
+//            [Items::BACKPACK, Items::ROPE, Items::VODO_DOLL],
+//            [Items::VODO_DOLL],
+//            [Items::BACKPACK, Items::ROPE],
+//            [Items::DEAD_ANCIENT_SCARAB],
+//            [Items::DEAD_ANCIENT_SCARAB, Items::ROPE],
+//        ];
+//
+//        $stacks = [
+//            [Items::CRYSTAL_COINS_11]
+//        ];
+//
+//        $stackCount = 0;
+//        if(rand(0, 10) == 1) {
+//            $randomStack = $stacks[rand(0, count($stacks) - 1)] ?? [];
+//            foreach(array_reverse($randomStack) as ['id' => $itemId, 'amount' => $amount]) {
+//                if($stackCount < 10) {
+//                    $msg->addShort($itemId);
+//                    if(is_numeric($amount)) {
+//                        $msg->addByte($amount);
+//                    }
+//                    print_r([$itemId, $amount]);
+//                    $stackCount++;
+//                }
+//            }
+//        }
+
+        $ids = [2941, 3001, 3002, 3003, 2854];
         $msg->addShort($floorId);
+        $msg->addShort(2874);
+        $msg->addByte(rand(0, 7)%8);
+
     }
 }
+
+class Items
+{
+    const ROPE = ['id' => 3003, 'amount' => null];
+    const VODO_DOLL = ['id' => 3002, 'amount' => null];
+    const BACKPACK = ['id' => 2854, 'amount' => null];
+    const DEAD_ANCIENT_SCARAB = ['id' => 6021, 'amount' => null];
+    const CRYSTAL_COINS_11 = ['id' => 2160, 'amount' => 0x0A];
+}
+
 
 class SpeakType
 {
